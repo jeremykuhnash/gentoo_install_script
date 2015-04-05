@@ -2,9 +2,11 @@
 
 SCRIPT_PARAMS=$@
 
-GENTOO_MIRROR=http://ftp.iij.ad.jp/pub/linux/gentoo/
-MOUNT_LOCATION=/mnt/gentoo
-TIMEZONE=Asia/Tokyo
+#GENTOO_MIRROR=http://ftp.iij.ad.jp/pub/linux/gentoo/
+GENTOO_MIRROR=http://gentoo.mirrors.tds.net/gentoo/
+MOUNT_LOCATION=/mnt/install/gentoo
+#TIMEZONE=Asia/Tokyo
+TIMEZONE=America/Los_Angeles
 
 CFLAGS="-march=core2 -O2 -pipe"
 
@@ -95,7 +97,7 @@ install_gentoo_prep ()
 
     command cd $MOUNT_LOCATION
 
-    LATEST_STAGE3=$(curl --silent ${GENTOO_MIRROR}releases/amd64/autobuilds/latest-stage3-amd64.txt | awk 'END{print}')
+    LATEST_STAGE3=$(curl --silent ${GENTOO_MIRROR}releases/amd64/autobuilds/latest-stage3-amd64.txt | awk 'END{print}' | cut -d " " -f 1)
     LATEST_STAGE3=${GENTOO_MIRROR}releases/amd64/autobuilds/${LATEST_STAGE3}
 
     message Downloading stage 3 tarball from $LATEST_STAGE3
@@ -152,7 +154,7 @@ EOF
 
     message Returned from chroot
 
-    command umount -l /mnt/gentoo{/dev,/proc,/sys,}
+    command umount -l ${MOUNT_LOCATION}{/dev,/proc,/sys,}
     command swapoff ${SWAP_DISK_PARTITION}
 }
 
