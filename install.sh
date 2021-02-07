@@ -1,11 +1,17 @@
 #! /usr/bin/env bash
 
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+THIS_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
 SCRIPT_PARAMS=$@
 
-#GENTOO_MIRROR=http://ftp.iij.ad.jp/pub/linux/gentoo/
-GENTOO_MIRROR=http://gentoo.mirrors.tds.net/gentoo/
+GENTOO_MIRROR=https://gentoo.osuosl.org/
 MOUNT_LOCATION=/mnt/install/gentoo
-#TIMEZONE=Asia/Tokyo
 TIMEZONE=America/Los_Angeles
 
 CFLAGS="-march=core2 -O2 -pipe"
@@ -15,15 +21,15 @@ INSTALL_PREP=false
 INSTALL_CHROOT=false
 
 # Gentoo Options
-ROOT_DISK_PARTITION=/dev/sda
-SWAP_DISK_PARTITION=/dev/sdb
+ROOT_DISK_PARTITION=/dev/sda1
+SWAP_DISK_PARTITION=/dev/sda2
 GRUB_DISK=/dev/sda
 ROOT_PARTITION_FS_TYPE=ext4
-HOSTNAME=gentoo
-DOMAINNAME=localdomain
-ROOT_PASSWORD=gentoo
-INSTALL_KERNEL=false
-INSTALL_GRUB=false
+HOSTNAME=botdiscover
+DOMAINNAME=botcanics.com
+ROOT_PASSWORD=0909popo0909
+INSTALL_KERNEL=true
+INSTALL_GRUB=true
 
 SOURCE="${PWD}/${BASH_SOURCE[0]}"
 
@@ -82,7 +88,7 @@ install_gentoo_prep ()
 
     command mkfs.${ROOT_PARTITION_FS_TYPE} ${ROOT_DISK_PARTITION}
     command mkswap ${SWAP_DISK_PARTITION}
-    command swapon ${SWAP_DISK_PARTITION}
+    # command swapon ${SWAP_DISK_PARTITION}
 
     #
     # Mount Disk
@@ -104,7 +110,7 @@ install_gentoo_prep ()
     command curl -O $LATEST_STAGE3
 
     message Extracting stage 3 tarball
-    command tar xjpf stage3-*.tar.bz2
+    command tar xpf stage3-*.tar.xz
 
     #
     # Portage Snapshot
@@ -155,7 +161,7 @@ EOF
     message Returned from chroot
 
     command umount -l ${MOUNT_LOCATION}{/dev,/proc,/sys,}
-    command swapoff ${SWAP_DISK_PARTITION}
+    # command swapoff ${SWAP_DISK_PARTITION}
 }
 
 install_gentoo_chroot ()
@@ -176,6 +182,12 @@ install_gentoo_chroot ()
     message Setting timezone
     command ln -sf /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
     echo "${TIMEZONE}" >> /etc/timezone
+
+    message Adding accept all licenses 
+    echo 'ACCEPT_LICENSE="*"' >> /etc/portage/make.conf
+
+    message Setting make jobs
+    echo 'MAKEOPTS="-j8"' >> /etc/portage/make.conf
 
     if $INSTALL_KERNEL; then
         message Installing the kernel sources
@@ -215,13 +227,13 @@ EOF
         command emerge --quiet-build grub
 
         grep -v rootfs /proc/mounts > /etc/mtab
-        command grub2-install ${GRUB_DISK}
-        command grub2-mkconfig -o /boot/grub/grub.cfg
+        command grub-install ${GRUB_DISK}
+        command grub-mkconfig -o /boot/grub/grub.cfg
     fi
 
     message Done installing
 
-    command rm /stage3-*.tar.bz2
+    command rm /stage3-*.tar.xz
     command rm /portage-latest.tar.bz2
     command rm /bootstrap.sh
 }
@@ -264,4 +276,3 @@ elif $INSTALL_CHROOT; then
 else
     usage
 fi
-
